@@ -50,13 +50,14 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
 
     for _ in range(S):
         # TODO 6: Generate simulated datasets using the same beta0 and beta1
-        X_sim = None  # Replace with code to generate simulated X values
-        Y_sim = None  # Replace with code to generate simulated Y values
+        X_sim = np.random.uniform(0, 1, N)  # Replace with code to generate simulated X values
+        Y_sim =  beta0 + beta1 * X_sim + mu + np.random.normal(0, np.sqrt(sigma2), N)   # Replace with code to generate simulated Y values
 
         # TODO 7: Fit linear regression to simulated data and store slope and intercept
-        sim_model = None  # Replace with code to fit the model
-        sim_slope = None  # Extract slope from sim_model
-        sim_intercept = None  # Extract intercept from sim_model
+        sim_model = LinearRegression()  # Replace with code to fit the model
+        sim_model.fit(X_sim.reshape(-1, 1), Y_sim) 
+        sim_slope = sim_model.coef_[0]  # Extract slope from sim_model
+        sim_intercept = sim_model.intercept_  # Extract intercept from sim_model
 
         slopes.append(sim_slope)
         intercepts.append(sim_intercept)
@@ -64,11 +65,22 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
     # TODO 8: Plot histograms of slopes and intercepts
     plot2_path = "static/plot2.png"
     # Replace with code to generate and save the histogram plot
-
+    plt.figure(figsize=(10, 5))
+    plt.hist(slopes, bins=20, alpha=0.5, color="blue", label="Slopes")
+    plt.hist(intercepts, bins=20, alpha=0.5, color="orange", label="Intercepts")
+    plt.axvline(slope, color="blue", linestyle="--", linewidth=1, label=f"Slope: {slope:.2f}")
+    plt.axvline(intercept, color="orange", linestyle="--", linewidth=1, label=f"Intercept: {intercept:.2f}")
+    plt.title("Histogram of Slopes and Intercepts")
+    plt.xlabel("Value")
+    plt.ylabel("Frequency")
+    plt.legend()
+    plt.savefig(plot2_path)
+    plt.close()
+    
     # TODO 9: Return data needed for further analysis, including slopes and intercepts
     # Calculate proportions of slopes and intercepts more extreme than observed
-    slope_more_extreme = None  # Replace with code to calculate proportion of slopes more extreme than observed
-    intercept_extreme = None  # Replace with code to calculate proportion of intercepts more extreme than observed
+    slope_more_extreme = np.sum(np.abs(slopes) > np.abs(slope)) / S  # Replace with code to calculate proportion of slopes more extreme than observed
+    intercept_extreme = np.sum(np.abs(intercepts) > np.abs(intercept)) / S  # Replace with code to calculate proportion of intercepts more extreme than observed
 
     # Return data needed for further analysis
     return (
