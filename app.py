@@ -256,7 +256,7 @@ def confidence_interval():
     intercepts = session.get("intercepts")
 
     parameter = request.form.get("parameter")
-    confidence_level = float(request.form.get("confidence_level"))
+    confidence_level = float(request.form.get("confidence_level")) / 100
 
     # Use the slopes or intercepts from the simulations
     if parameter == "slope":
