@@ -14,22 +14,36 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
     # Generate data and initial plots
 
     # TODO 1: Generate a random dataset X of size N with values between 0 and 1
-    X = None  # Replace with code to generate random values for X
+    X = np.random.uniform(0, 1, N)   # Replace with code to generate random values for X
 
     # TODO 2: Generate a random dataset Y using the specified beta0, beta1, mu, and sigma2
     # Y = beta0 + beta1 * X + mu + error term
-    Y = None  # Replace with code to generate Y
+    Y = beta0 + beta1 * X + mu + np.random.normal(0, np.sqrt(sigma2), N)  # Replace with code to generate Y
 
     # TODO 3: Fit a linear regression model to X and Y
-    model = None  # Initialize the LinearRegression model
-    # None  # Fit the model to X and Y
-    slope = None  # Extract the slope (coefficient) from the fitted model
-    intercept = None  # Extract the intercept from the fitted model
+    model = LinearRegression()  # Initialize the LinearRegression model
+    model.fix(X.reshape(-1, 1), Y)  # Fit the model to X and Y
+    slope = model.coef_[0]  # Extract the slope (coefficient) from the fitted model
+    intercept = model.intercept_  # Extract the intercept from the fitted model
 
     # TODO 4: Generate a scatter plot of (X, Y) with the fitted regression line
     plot1_path = "static/plot1.png"
     # Replace with code to generate and save the scatter plot
-
+    plt.figure(figsize=(10, 6))
+    plt.scatter(X, Y, color='blue', label='Data Points')
+    
+    # Plot the fitted regression line
+    X_sorted = np.sort(X)
+    Y_pred = model.predict(X_sorted.reshape(-1, 1))
+    plt.plot(X_sorted, Y_pred, color='red', label=f'Fitted Regression Line : Y = {intercept:.2f} + {slope:.2f}x + μ')
+    
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title(f'Fitted Regression Line : Y = {intercept:.2f} + {slope:.2f}x + μ')
+    plt.legend()
+    plt.savefig(plot1_path)
+    plt.close()
+    
     # TODO 5: Run S simulations to generate slopes and intercepts
     slopes = []
     intercepts = []
