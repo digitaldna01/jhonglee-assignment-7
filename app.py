@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, url_for, session
 from flask_session import Session
 import numpy as np
 import matplotlib
+from scipy import stats
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -233,7 +234,7 @@ def hypothesis_test():
         beta0=beta0,
         beta1=beta1,
         S=S,
-        # TODO 13: Uncomment the following lines when implemented
+        # 13: Uncomment the following lines when implemented
         p_value=p_value,
         fun_message=fun_message,
     )
@@ -268,16 +269,17 @@ def confidence_interval():
         true_param = beta0
 
     # TODO 14: Calculate mean and standard deviation of the estimates
-    mean_estimate = None
-    std_estimate = None
+    mean_estimate = np.mean(estimates)
+    std_estimate = np.std(estimates, ddof=1)
 
     # TODO 15: Calculate confidence interval for the parameter estimate
     # Use the t-distribution and confidence_level
-    ci_lower = None
-    ci_upper = None
+    t_critical = stats.t.ppf((1 + confidence_level) / 2, df=N -1)
+    ci_lower = mean_estimate - t_critical * (std_estimate / np.sqrt(N))
+    ci_upper = mean_estimate + t_critical * (std_estimate / np.sqrt(N))
 
     # TODO 16: Check if confidence interval includes true parameter
-    includes_true = None
+    includes_true = ci_lower <= true_param <= ci_upper
 
     # TODO 17: Plot the individual estimates as gray points and confidence interval
     # Plot the mean estimate as a colored point which changes if the true parameter is included
@@ -285,6 +287,16 @@ def confidence_interval():
     # Plot the true parameter value
     plot4_path = "static/plot4.png"
     # Write code here to generate and save the plot
+    plt.figure(figsize=(10, 5))
+    plt.scatter(estimates, [1] * len(estimates), color='gray', alpha=0.5, label="Simulated Estimates")
+    plt.plot([mean_estimate], [1], 'o', color='blue', label="Mean Estimate")
+    plt.hlines(y=1, xmin=ci_lower, xmax=ci_upper, color='blue', linewidth=3, label=f"{confidence_level * 100:.1f}% Confidence Interval")
+    plt.axvline(x=true_param, color='green', linestyle='--', label=f"True {parameter.capitalize()}")
+    plt.xlabel(f"{parameter.capitalize()} Estimate")
+    plt.title(f"{confidence_level * 100:.1f}% Confidence Interval for {parameter.capitalize()} (Mean Estimate)")
+    plt.legend()
+    plt.savefig(plot4_path)
+    plt.close()
 
     # Return results to template
     return render_template(

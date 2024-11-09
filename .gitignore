@@ -28,3 +28,7 @@ build/
 static/
 
 *.DS_Store
+
+# flask Session
+flask_session/
+
