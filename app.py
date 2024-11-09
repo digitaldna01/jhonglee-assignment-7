@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, url_for, session
+from flask_session import Session
 import numpy as np
 import matplotlib
 
@@ -7,26 +8,28 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 
 app = Flask(__name__)
+app.config['SESSION_TYPE'] = 'filesystem'  # 또는 'redis', 'sqlalchemy' 등
+Session(app)
 app.secret_key = "your_secret_key_here"  # Replace with your own secret key, needed for session management
 
 
 def generate_data(N, mu, beta0, beta1, sigma2, S):
     # Generate data and initial plots
 
-    # TODO 1: Generate a random dataset X of size N with values between 0 and 1
+    # 1: Generate a random dataset X of size N with values between 0 and 1
     X = np.random.uniform(0, 1, N)   # Replace with code to generate random values for X
 
-    # TODO 2: Generate a random dataset Y using the specified beta0, beta1, mu, and sigma2
+    # 2: Generate a random dataset Y using the specified beta0, beta1, mu, and sigma2
     # Y = beta0 + beta1 * X + mu + error term
     Y = beta0 + beta1 * X + mu + np.random.normal(0, np.sqrt(sigma2), N)  # Replace with code to generate Y
 
-    # TODO 3: Fit a linear regression model to X and Y
+    # 3: Fit a linear regression model to X and Y
     model = LinearRegression()  # Initialize the LinearRegression model
-    model.fix(X.reshape(-1, 1), Y)  # Fit the model to X and Y
+    model.fit(X.reshape(-1, 1), Y)  # Fit the model to X and Y
     slope = model.coef_[0]  # Extract the slope (coefficient) from the fitted model
     intercept = model.intercept_  # Extract the intercept from the fitted model
 
-    # TODO 4: Generate a scatter plot of (X, Y) with the fitted regression line
+    # 4: Generate a scatter plot of (X, Y) with the fitted regression line
     plot1_path = "static/plot1.png"
     # Replace with code to generate and save the scatter plot
     plt.figure(figsize=(10, 6))
@@ -35,25 +38,25 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
     # Plot the fitted regression line
     X_sorted = np.sort(X)
     Y_pred = model.predict(X_sorted.reshape(-1, 1))
-    plt.plot(X_sorted, Y_pred, color='red', label=f'Fitted Regression Line : Y = {intercept:.2f} + {slope:.2f}x + μ')
+    plt.plot(X_sorted, Y_pred, color='red', label=f'Fitted Regression Line : Y = {intercept:.2f} + {slope:.2f}x + μ + error')
     
     plt.xlabel('X')
     plt.ylabel('Y')
-    plt.title(f'Fitted Regression Line : Y = {intercept:.2f} + {slope:.2f}x + μ')
+    plt.title(f'Fitted Regression Line : Y = {intercept:.2f} + {slope:.2f}x + μ + error')
     plt.legend()
     plt.savefig(plot1_path)
     plt.close()
     
-    # TODO 5: Run S simulations to generate slopes and intercepts
+    # 5: Run S simulations to generate slopes and intercepts
     slopes = []
     intercepts = []
 
     for _ in range(S):
-        # TODO 6: Generate simulated datasets using the same beta0 and beta1
+        # 6: Generate simulated datasets using the same beta0 and beta1
         X_sim = np.random.uniform(0, 1, N)  # Replace with code to generate simulated X values
         Y_sim =  beta0 + beta1 * X_sim + mu + np.random.normal(0, np.sqrt(sigma2), N)   # Replace with code to generate simulated Y values
 
-        # TODO 7: Fit linear regression to simulated data and store slope and intercept
+        # 7: Fit linear regression to simulated data and store slope and intercept
         sim_model = LinearRegression()  # Replace with code to fit the model
         sim_model.fit(X_sim.reshape(-1, 1), Y_sim) 
         sim_slope = sim_model.coef_[0]  # Extract slope from sim_model
@@ -62,7 +65,7 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
         slopes.append(sim_slope)
         intercepts.append(sim_intercept)
 
-    # TODO 8: Plot histograms of slopes and intercepts
+    # 8: Plot histograms of slopes and intercepts
     plot2_path = "static/plot2.png"
     # Replace with code to generate and save the histogram plot
     plt.figure(figsize=(10, 5))
@@ -77,7 +80,7 @@ def generate_data(N, mu, beta0, beta1, sigma2, S):
     plt.savefig(plot2_path)
     plt.close()
     
-    # TODO 9: Return data needed for further analysis, including slopes and intercepts
+    # 9: Return data needed for further analysis, including slopes and intercepts
     # Calculate proportions of slopes and intercepts more extreme than observed
     slope_more_extreme = np.sum(np.abs(slopes) > np.abs(slope)) / S  # Replace with code to calculate proportion of slopes more extreme than observed
     intercept_extreme = np.sum(np.abs(intercepts) > np.abs(intercept)) / S  # Replace with code to calculate proportion of intercepts more extreme than observed
@@ -172,9 +175,9 @@ def hypothesis_test():
     intercepts = session.get("intercepts")
     beta0 = float(session.get("beta0"))
     beta1 = float(session.get("beta1"))
-
-    parameter = request.form.get("parameter")
-    test_type = request.form.get("test_type")
+    # Get parameter from static html
+    parameter = request.form.get("parameter") # slope or intercept
+    test_type = request.form.get("test_type") # greater than, less than, not equal to
 
     # Use the slopes or intercepts from the simulations
     if parameter == "slope":
@@ -187,14 +190,35 @@ def hypothesis_test():
         hypothesized_value = beta0
 
     # TODO 10: Calculate p-value based on test type
-    p_value = None
+    adjusted_simulated_stats = simulated_stats - np.mean(simulated_stats) + hypothesized_value
+    if test_type == ">":
+        p_value = np.sum(adjusted_simulated_stats >= observed_stat) / len(simulated_stats)
+    elif test_type == "<":
+        p_value = np.sum(adjusted_simulated_stats <= observed_stat) / len(simulated_stats)
+    elif test_type == "!=":
+        p_value = np.sum(np.abs(adjusted_simulated_stats - hypothesized_value) >= np.abs(observed_stat - hypothesized_value)) / len(simulated_stats)
+    else:
+        p_value = None
 
     # TODO 11: If p_value is very small (e.g., <= 0.0001), set fun_message to a fun message
-    fun_message = None
+    if p_value is not None and p_value <= 0.0001:
+        fun_message = "Wow, this is a really tiny p-value! Your result is quite impressive, great JOB! I hope I get A from this Class!!!"
+    else:
+        fun_message = None
 
     # TODO 12: Plot histogram of simulated statistics
     plot3_path = "static/plot3.png"
     # Replace with code to generate and save the plot
+    plt.figure(figsize=(10, 5))
+    plt.hist(adjusted_simulated_stats, bins=15, alpha=0.7, color="skyblue", label=f"Simulated Statistics")
+    plt.axvline(observed_stat, color="red", linestyle="--", linewidth=2, label=f"Observed {parameter.capitalize()}: {observed_stat:.4f}")
+    plt.axvline(hypothesized_value, color="blue", linestyle="-.", linewidth=2, label=f"Hypothesized {parameter.capitalize()} (H₀): {hypothesized_value:.2f}")
+    plt.xlabel(f"{parameter.capitalize()}")
+    plt.ylabel("Frequency")
+    plt.title(f"Hypothesis Test for {parameter.capitalize()}")
+    plt.legend()
+    plt.savefig(plot3_path)
+    plt.close()
 
     # Return results to template
     return render_template(
@@ -210,8 +234,8 @@ def hypothesis_test():
         beta1=beta1,
         S=S,
         # TODO 13: Uncomment the following lines when implemented
-        # p_value=p_value,
-        # fun_message=fun_message,
+        p_value=p_value,
+        fun_message=fun_message,
     )
 
 @app.route("/confidence_interval", methods=["POST"])
